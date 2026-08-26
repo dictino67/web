@@ -1,23 +1,50 @@
-# Formulaire de contact PHP
+# StockPilot
 
-Application web PHP affichant un formulaire de contact avec les champs nom, prénom, adresse mail et GSM.
+Application web de gestion de stock de fournitures. Elle permet d'ajouter un produit avec son image, puis de consulter les produits enregistrés par pages de 10.
 
 ## Prérequis
 
-- PHP 7.4 ou supérieur
+- Node.js 18 ou supérieur
+- PostgreSQL 14 ou supérieur
+
+## Installation
+
+```bash
+npm install
+cp .env.example .env
+```
+
+Créez la base PostgreSQL, puis exécutez le schéma :
+
+```bash
+createdb stock_fournitures
+psql -d stock_fournitures -f database/schema.sql
+```
+
+Renseignez ensuite les paramètres PostgreSQL dans `.env`.
 
 ## Démarrage
 
-Depuis le dossier du projet :
-
 ```bash
-php -S localhost:8000
+npm start
 ```
 
-Puis ouvrir [http://localhost:8000](http://localhost:8000).
+Ouvrez ensuite [http://localhost:3000](http://localhost:3000). La page `index.html` ajoute les produits et `list.html` affiche la liste paginée.
 
-## Fonctionnement
+## API
 
-Le formulaire vérifie que tous les champs sont remplis et que l'adresse mail possède un format valide. Après validation, un message de confirmation est affiché.
+- `POST /api/products` : ajoute un produit avec une image multipart obligatoire.
+- `GET /api/products?page=1&limit=10` : retourne au maximum 10 produits.
+- `GET /api/products/:id/image` : restitue l'image enregistrée dans PostgreSQL.
 
-Les données ne sont actuellement pas enregistrées dans une base de données et aucun mail réel n'est envoyé.
+Les images sont stockées directement dans PostgreSQL via Large Objects. Les formats acceptés sont JPG, PNG, GIF et WebP, avec une taille maximale de 5 Mo.
+
+## Vérification
+
+```bash
+node --check server.js
+node --check app.js
+node --check list.js
+```
+
+Testez également un ajout valide, les champs obligatoires, une quantité négative, l'absence d'image, un format d'image refusé et la navigation entre les pages de la liste.
