@@ -38,7 +38,7 @@ Avec Docker, depuis la racine du projet :
 docker compose up --build -d
 ```
 
-Ouvrez ensuite [http://localhost:3000/login.html](http://localhost:3000/login.html). La page de connexion protège `index.html` et `list.html`.
+Ouvrez ensuite [http://localhost:3007/login.html](http://localhost:3007/login.html). La page de connexion protège `index.html`, `list.html` et `detail.html`.
 
 Pour la démonstration, utilisez :
 
@@ -49,11 +49,7 @@ La connexion est conservée côté serveur dans PostgreSQL et identifiée par un
 
 ## API
 
-- `POST /api/products` : ajoute un produit avec une image multipart obligatoire.
-- `GET /api/products?page=1&limit=10` : retourne au maximum 10 produits.
-- `GET /api/products/:id/image` : restitue l'image enregistrée dans PostgreSQL.
-
-Le flux facture utilise également :
+Le flux facture utilise :
 
 - `POST /api/invoices` : ajoute une facture via `multipart/form-data` avec `nom_societe`, `description` et `document`.
 - `GET /api/invoices?page=1` : retourne au maximum 10 factures.
@@ -61,6 +57,8 @@ Le flux facture utilise également :
 - `GET /api/n8n/invoices/:id/file` : restitue le fichier à n8n avec l'en-tête `X-N8N-API-KEY`.
 - `GET /api/invoices/:id` : retourne la facture et les lignes `detailfacture` correspondant exactement à `factures.fichier_nom`.
 - `PUT /api/invoices/:id` : modifie les champs de la facture et permet de remplacer son fichier.
+- `PUT /api/detailfacture/:id` : modifie directement le nom du fichier, la description, la quantité et le montant d'une ligne extraite.
+- `DELETE /api/detailfacture/:id` : efface une ligne extraite.
 - `GET /api/invoices/:id/read` : déclenche le webhook n8n de lecture de la facture.
 
 Les fichiers sont stockés directement dans PostgreSQL via Large Objects. Les factures acceptent uniquement les JPEG et PDF valides, avec une taille maximale de 5 Mo. La date de chargement est générée automatiquement dans la table `factures`.
@@ -96,6 +94,7 @@ La clé n8n est différente du compte utilisateur et n'est jamais placée dans l
 node --check server.js
 node --check app.js
 node --check list.js
+npm test
 ```
 
-Testez également un ajout valide, les champs obligatoires, une quantité négative, l'absence d'image, un format d'image refusé et la navigation entre les pages de la liste.
+La suite unitaire vérifie les signatures binaires des JPEG, PNG et PDF et rejette les faux fichiers. Testez également un ajout valide, les champs obligatoires, l'absence d'image, un format d'image refusé et la navigation entre les pages de la liste.

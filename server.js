@@ -10,13 +10,13 @@ const PgSession = require('connect-pg-simple')(session);
 const multer = require('multer');
 const helmet = require('helmet');
 const { Pool } = require('pg');
+const { isValidInvoiceFile, isValidImage } = require('./file-validation');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const pageSize = 10;
 const maxFileSize = 5 * 1024 * 1024;
 const invoiceTypes = new Set(['image/jpeg', 'application/pdf']);
-const imageTypes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 
 if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) throw new Error('SESSION_SECRET doit contenir au moins 32 caractères.');
 if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD_HASH?.startsWith('$2')) throw new Error('ADMIN_USERNAME et ADMIN_PASSWORD_HASH sont obligatoires.');
@@ -33,13 +33,6 @@ app.use(session({ store: new PgSession({ pool, tableName: 'user_sessions', creat
 const errorResponse = (res, status, message) => res.status(status).json({ error: message });
 const requireAuth = (req, res, next) => req.session.user ? next() : errorResponse(res, 401, 'Authentification requise.');
 const requireN8nApiKey = (req, res, next) => req.get('X-N8N-API-KEY') === process.env.N8N_API_KEY ? next() : errorResponse(res, 401, 'Clé API n8n invalide.');
-const isSignatureValid = (buffer, mime) => {
-  if (mime === 'image/jpeg') return buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
-  if (mime === 'image/png') return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-  if (mime === 'image/gif') return ['GIF87a', 'GIF89a'].includes(buffer.subarray(0, 6).toString('ascii'));
-  if (mime === 'image/webp') return buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP';
-  return mime === 'application/pdf' && buffer.subarray(0, 5).toString('ascii') === '%PDF-';
-};
 async function writeLargeObject(client, buffer) {
   const oid = (await client.query('SELECT lo_create(0) AS oid')).rows[0].oid;
   const fd = (await client.query('SELECT lo_open($1, 131072) AS fd', [oid])).rows[0].fd;
@@ -66,7 +59,7 @@ app.post('/api/invoices', requireAuth, upload.single('document'), async (req, re
   const company = String(req.body.nom_societe || '').trim();
   const description = String(req.body.description || '').trim();
   if (!company || !description) return errorResponse(res, 400, 'Veuillez renseigner la société et la description.');
-  if (!req.file || !invoiceTypes.has(req.file.mimetype) || !isSignatureValid(req.file.buffer, req.file.mimetype)) return errorResponse(res, 400, 'Un fichier JPEG ou PDF valide est obligatoire.');
+    if (!req.file || !invoiceTypes.has(req.file.mimetype) || !isValidInvoiceFile(req.file.buffer, req.file.mimetype)) return errorResponse(res, 400, 'Un fichier JPEG ou PDF valide est obligatoire.');
   const client = await pool.connect(); let oid;
   try { await client.query('BEGIN'); oid = await writeLargeObject(client, req.file.buffer); const fileName = path.basename(req.file.originalname); const result = await client.query(`INSERT INTO factures (nom_societe, description, fichier_oid, fichier_mime, fichier_nom, nom_fichier_image) VALUES ($1, $2, $3, $4, $5, $5) RETURNING id, date_chargement`, [company, description, oid, req.file.mimetype, fileName]); await client.query('COMMIT'); return res.status(201).json({ message: 'Facture enregistrée avec succès.', invoice: result.rows[0] }); }
   catch (error) { await client.query('ROLLBACK').catch(() => {}); if (oid) await pool.query('SELECT lo_unlink($1)', [oid]).catch(() => {}); console.error(error); return errorResponse(res, 500, 'Impossible d’enregistrer la facture.'); } finally { client.release(); }
@@ -111,11 +104,40 @@ app.get('/api/invoices/:id', requireAuth, async (req, res) => {
   } catch (error) { console.error(error); return errorResponse(res, 500, 'Impossible de charger le détail de la facture.'); }
 });
 
+app.put('/api/detailfacture/:id', requireAuth, async (req, res) => {
+  const fileName = String(req.body.nom_fichier || '').trim();
+  const description = String(req.body.description || '').trim();
+  const quantity = Number(req.body.quantite);
+  const amount = Number(req.body.montant);
+  if (!fileName || !description || !Number.isFinite(quantity) || quantity < 0 || !Number.isFinite(amount) || amount < 0) {
+    return errorResponse(res, 400, 'Les champs du détail sont invalides.');
+  }
+  try {
+    const result = await pool.query(
+      `UPDATE detailfacture
+       SET nom_fichier = $1, description = $2, quantite = $3, montant = $4
+       WHERE id = $5
+       RETURNING id, nom_fichier, description, quantite, montant`,
+      [fileName, description, quantity, amount, req.params.id]
+    );
+    if (!result.rowCount) return errorResponse(res, 404, 'Ligne de détail introuvable.');
+    return res.json({ message: 'Détail modifié avec succès.', detail: result.rows[0] });
+  } catch (error) { console.error(error); return errorResponse(res, 500, 'Impossible de modifier le détail.'); }
+});
+
+app.delete('/api/detailfacture/:id', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query('DELETE FROM detailfacture WHERE id = $1 RETURNING id', [req.params.id]);
+    if (!result.rowCount) return errorResponse(res, 404, 'Ligne de détail introuvable.');
+    return res.json({ message: 'Détail effacé avec succès.', id: result.rows[0].id });
+  } catch (error) { console.error(error); return errorResponse(res, 500, 'Impossible d’effacer le détail.'); }
+});
+
 app.put('/api/invoices/:id', requireAuth, upload.single('document'), async (req, res) => {
   const company = String(req.body.nom_societe || '').trim();
   const description = String(req.body.description || '').trim();
   if (!company || !description) return errorResponse(res, 400, 'La société et la description sont obligatoires.');
-  if (req.file && (!invoiceTypes.has(req.file.mimetype) || !isSignatureValid(req.file.buffer, req.file.mimetype))) return errorResponse(res, 400, 'Le fichier doit être un JPEG ou un PDF valide.');
+  if (req.file && (!invoiceTypes.has(req.file.mimetype) || !isValidInvoiceFile(req.file.buffer, req.file.mimetype))) return errorResponse(res, 400, 'Le fichier doit être un JPEG ou un PDF valide.');
   const client = await pool.connect(); let newOid;
   try {
     await client.query('BEGIN');

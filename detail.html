@@ -26,6 +26,10 @@
         <div class="form-actions"><p id="detail-message" class="form-message" role="status" aria-live="polite"></p><button id="save-button" class="button button-primary" type="submit" hidden>Enregistrer les modifications</button></div>
       </form>
     </section>
+    <section class="invoice-preview-panel" aria-labelledby="preview-title">
+      <div class="panel-heading"><div><p class="section-kicker">Document original</p><h2 id="preview-title">Aperçu de la facture</h2></div></div>
+      <div id="invoice-preview" class="invoice-preview"><p class="list-message">Chargement de l’aperçu...</p></div>
+    </section>
     <section class="list-panel detail-data" aria-labelledby="details-title"><div class="panel-heading"><div><p class="section-kicker">Extraction n8n</p><h2 id="details-title">Données du fichier</h2></div><span id="processing-status" class="record-count"></span></div><p id="details-empty" class="list-message" hidden>Pas de données disponible.</p><div id="detail-list" class="detail-table"></div></section>
   </main>
 </body>

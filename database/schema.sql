@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS detailfacture (
 );
 
 CREATE INDEX IF NOT EXISTS detailfacture_nom_fichier_idx ON detailfacture (nom_fichier);
+SELECT setval(pg_get_serial_sequence('detailfacture', 'id'), COALESCE((SELECT MAX(id) FROM detailfacture), 1), TRUE);
 
 CREATE TABLE IF NOT EXISTS utilisateurs (
     id BIGSERIAL PRIMARY KEY,
