@@ -1,11 +1,11 @@
 services:
   web:
     build:
-      context: ..
+      context: .
       dockerfile: stock-app/Dockerfile
     ports:
       - "3000:3000"
     env_file:
-      - ../.env
+      - .env
     command: >-
       sh -c "psql -v ON_ERROR_STOP=1 -f database/schema.sql && node server.js"

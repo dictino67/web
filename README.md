@@ -32,6 +32,12 @@ Le démarrage Docker exécute automatiquement `database/schema.sql` sur cette ba
 npm start
 ```
 
+Avec Docker, depuis la racine du projet :
+
+```bash
+docker compose up --build -d
+```
+
 Ouvrez ensuite [http://localhost:3000/login.html](http://localhost:3000/login.html). La page de connexion protège `index.html` et `list.html`.
 
 Pour la démonstration, utilisez :
