@@ -1,0 +1,4 @@
+{
+    "ollama-autopilot.model.modelName": "jaahas/qwen3.5-uncensored:9b",
+    "ollama-autopilot.general.autopilotEnabled": true
+}

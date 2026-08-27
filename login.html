@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion | Gestion des factures</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="auth.js"></script>
+  <script src="login.js" defer></script>
+</head>
+<body>
+  <main class="auth-shell">
+    <section class="auth-panel" aria-labelledby="login-title">
+      <a class="brand" href="login.html"><img class="site-logo" src="TOBEdigit_logo_2018.png" alt="TOBEdigit"></a>
+      <p class="eyebrow">Espace sécurisé</p>
+      <h1 id="login-title">Bienvenue</h1>
+      <p class="intro-copy">Connectez-vous pour accéder à vos factures et à votre registre.</p>
+      <form id="login-form" class="login-form">
+        <label class="field" for="username">Identifiant
+          <input id="username" name="username" type="text" autocomplete="username" required>
+        </label>
+        <label class="field" for="password">Mot de passe
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <p id="login-message" class="form-message" role="alert" aria-live="polite"></p>
+        <button class="button button-primary" type="submit"><span>Se connecter</span><span aria-hidden="true">→</span></button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

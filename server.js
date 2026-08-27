@@ -8,8 +8,9 @@ const { Pool } = require('pg');
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const pageSize = 10;
-const maxImageSize = 5 * 1024 * 1024;
+const maxFileSize = 5 * 1024 * 1024;
 const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+const allowedInvoiceMimeTypes = new Set(['image/jpeg', 'application/pdf']);
 
 const pool = new Pool({
   host: process.env.PGHOST,
@@ -21,7 +22,7 @@ const pool = new Pool({
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: maxImageSize, files: 1 }
+  limits: { fileSize: maxFileSize, files: 1 }
 });
 
 app.use(express.json());
@@ -39,6 +40,11 @@ function hasImageSignature(buffer, mimeType) {
   return false;
 }
 
+function hasInvoiceSignature(buffer, mimeType) {
+  if (mimeType === 'image/jpeg') return hasImageSignature(buffer, mimeType);
+  return mimeType === 'application/pdf' && buffer.subarray(0, 5).toString('ascii') === '%PDF-';
+}
+
 async function writeLargeObject(client, buffer) {
   const result = await client.query('SELECT lo_create(0) AS oid');
   const oid = result.rows[0].oid;
@@ -52,6 +58,75 @@ async function writeLargeObject(client, buffer) {
   }
   return oid;
 }
+
+app.post('/api/invoices', upload.single('document'), async (req, res) => {
+  const companyName = String(req.body.nom_societe || '').trim();
+  const description = String(req.body.description || '').trim();
+
+  if (!companyName || !description) {
+    return sendError(res, 400, 'Veuillez renseigner la société et la description.');
+  }
+  if (!req.file) return sendError(res, 400, 'Un fichier JPEG ou PDF est obligatoire.');
+  if (!allowedInvoiceMimeTypes.has(req.file.mimetype) || !hasInvoiceSignature(req.file.buffer, req.file.mimetype)) {
+    return sendError(res, 400, 'Le fichier doit être un JPEG ou un PDF valide.');
+  }
+
+  const client = await pool.connect();
+  let fileOid;
+  try {
+    await client.query('BEGIN');
+    fileOid = await writeLargeObject(client, req.file.buffer);
+    const result = await client.query(
+      `INSERT INTO factures (nom_societe, description, fichier_oid, fichier_mime, fichier_nom)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id, date_chargement`,
+      [companyName, description, fileOid, req.file.mimetype, req.file.originalname]
+    );
+    await client.query('COMMIT');
+    return res.status(201).json({ message: 'Facture enregistrée avec succès.', invoice: result.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    if (fileOid) await pool.query('SELECT lo_unlink($1)', [fileOid]).catch(() => {});
+    console.error(error);
+    return sendError(res, 500, 'Impossible d’enregistrer la facture.');
+  } finally {
+    client.release();
+  }
+});
+
+app.get('/api/invoices', async (req, res) => {
+  const requestedPage = Number.parseInt(req.query.page, 10) || 1;
+  const page = Math.max(requestedPage, 1);
+  const offset = (page - 1) * pageSize;
+  try {
+    const [invoices, count] = await Promise.all([
+      pool.query(
+        `SELECT id, date_chargement, nom_societe, description, fichier_mime, fichier_nom
+         FROM factures ORDER BY date_chargement DESC, id DESC LIMIT $1 OFFSET $2`,
+        [pageSize, offset]
+      ),
+      pool.query('SELECT COUNT(*)::int AS total FROM factures')
+    ]);
+    const total = count.rows[0].total;
+    return res.json({ invoices: invoices.rows, total, page, limit: pageSize, hasNext: offset + invoices.rows.length < total });
+  } catch (error) {
+    console.error(error);
+    return sendError(res, 500, 'Impossible de charger les factures.');
+  }
+});
+
+app.get('/api/invoices/:id/file', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT fichier_oid, fichier_mime, fichier_nom FROM factures WHERE id = $1', [req.params.id]);
+    if (!result.rowCount) return sendError(res, 404, 'Facture introuvable.');
+    const file = await pool.query('SELECT lo_get($1) AS data', [result.rows[0].fichier_oid]);
+    res.type(result.rows[0].fichier_mime);
+      res.setHeader('Content-Disposition', `inline; filename="${result.rows[0].fichier_nom.replace(/[\"\r\n]/g, '')}"`);
+    return res.send(file.rows[0].data);
+  } catch (error) {
+    console.error(error);
+    return sendError(res, 500, 'Impossible de charger le fichier.');
+  }
+});
 
 app.post('/api/products', upload.single('image'), async (req, res) => {
   const name = String(req.body.nom_produit || '').trim();

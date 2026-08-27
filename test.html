@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affichage de l'heure</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+        }
+        .site-logo {
+            position: fixed;
+            top: 24px;
+            left: 24px;
+            z-index: 1;
+            width: 170px;
+            height: auto;
+        }
+        .clock {
+            font-size: 48px;
+            color: white;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 40px 60px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <img class="site-logo" src="TOBEdigit_logo_2018.png" alt="TOBEdigit">
+    <div class="clock" id="clock"></div>
+    
+    <script>
+        function afficherHeure() {
+            const maintenant = new Date();
+            const heures = String(maintenant.getHours()).padStart(2, '0');
+            const minutes = String(maintenant.getMinutes()).padStart(2, '0');
+            const secondes = String(maintenant.getSeconds()).padStart(2, '0');
+            
+            document.getElementById('clock').textContent = `${heures}:${minutes}:${secondes}`;
+        }
+        
+        afficherHeure();
+        setInterval(afficherHeure, 1000);
+    </script>
+</body>
+</html>
+
+
+
+

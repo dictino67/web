@@ -1,57 +1,73 @@
-# Instructions du projet
+# Analyse du Projet Web AGENTOllama
 
-## Objectif
+## Authentification de l'interface
 
-Cette application gère un stock de fournitures. Elle permet d'ajouter des produits avec leur image et de consulter la liste des produits enregistrés.
+- `login.html` est le point d'entrée de l'application.
+- `auth.js` redirige les visiteurs non connectés vers `login.html` et protège `index.html` ainsi que `list.html`.
+- Les identifiants de démonstration sont `admin` / `admin`.
+- La session est conservée uniquement avec `sessionStorage` et disparaît à la fermeture de l'onglet.
 
-## Architecture
+## 1. Vue d'ensemble du Projet
 
-- Frontend : HTML, CSS et JavaScript vanilla.
-- Backend : Node.js avec Express.
-- Base de données : PostgreSQL.
-- Images : enregistrées directement dans PostgreSQL avec des Large Objects.
-- Pages principales : `index.html` pour l'ajout et `list.html` pour la liste paginée.
+**AGENTOllama** est une solution web permettant de numériser et de gérer automatiquement les factures PDF. Le projet utilise une architecture hybride (Frontend + Backend léger + Base de données PostgreSQL distante).
 
-## Conventions
+## 2. Architecture Technique
 
-- Utiliser les libellés français dans l'interface utilisateur.
-- Conserver le menu commun avec les liens `Home` vers `index.html` et `Liste` vers `list.html`.
-- Utiliser `FormData` pour envoyer le formulaire et l'image à l'API.
-- Valider les champs côté navigateur et côté serveur.
-- L'image est obligatoire, doit être un type image accepté et respecter la taille maximale définie par le serveur.
-- La quantité en stock doit être un nombre entier supérieur ou égal à zéro.
-- Ne jamais placer les identifiants PostgreSQL directement dans le code source.
-- Utiliser les variables d'environnement chargées depuis `.env`.
-- Ne jamais ajouter `.env` ou des secrets au dépôt.
-- Utiliser des requêtes PostgreSQL paramétrées.
-- Nettoyer les Large Objects si une transaction d'insertion échoue.
-- Échapper ou construire les contenus utilisateur avec des APIs DOM sûres ; ne pas utiliser `innerHTML` avec des valeurs non contrôlées.
+### 2.1. Composants du Projet
 
-## API attendue
+- **Frontend** :
+    - Fichier HTML : `index.html`
+    - Librairie JavaScript : `pdf.js` (pour la lecture et la conversion des PDF en images JPEG)
 
-- `POST /api/products` : ajoute un produit avec une image multipart.
-- `GET /api/products?page=1&limit=10` : retourne les produits avec pagination.
-- `GET /api/products/:id/image` : retourne l'image enregistrée dans PostgreSQL.
+- **Backend** :
+    - Fichier Python : `app.py`
+    - Framework Python : Flask
+    - Connexion à la base de données : psycopg2
 
-La pagination doit afficher au maximum 10 produits par page et fournir les informations nécessaires aux boutons `Suivant` et `Précédent`.
+- **Base de Données** :
+    - PostgreSQL (hébergée à distance)
+    - Table `factures`
 
-## Vérification
+### 2.2. Flux de Données
 
-Avant de terminer une modification :
+1. L'utilisateur charge un fichier PDF via `index.html`.
+2. Le PDF est lu et converti en image JPEG en utilisant `pdf.js`.
+3. L'image JPEG et les métadonnées (nom de la société, description) sont envoyées au serveur via une requête HTTP POST.
+4. Le serveur Python reçoit les données et les insère dans la base de données PostgreSQL distante.
+5. Une confirmation est renvoyée à l'utilisateur via `index.html`.
 
-1. Exécuter `npm install` si les dépendances ont changé.
-2. Exécuter `node --check server.js` pour vérifier la syntaxe du serveur.
-3. Exécuter le schéma SQL sur PostgreSQL si la structure de la base a changé.
-4. Tester l'ajout d'un produit valide avec une image.
-5. Tester les champs manquants, la quantité invalide, l'absence d'image, les types d'image refusés et les fichiers trop volumineux.
-6. Vérifier l'affichage des images et la pagination par groupes de 10.
+## 3. Technologies Utilisées
 
-## Démarrage
+### 3.1. Frontend
 
-La commande de développement prévue est :
+- **Technologies** :
+    - HTML5
+    - CSS
+    - JavaScript
+    - `pdf.js` (pour la lecture et la conversion des PDF en images)
 
-```bash
-npm start
-```
+### 3.2. Backend
 
-Le serveur doit servir les fichiers frontend et l'API depuis la même origine.
+- **Technologies** :
+    - Python
+    - Flask (framework web)
+    - psycopg2 (pour la connexion à PostgreSQL)
+
+### 3.3. Base de Données
+
+- **Technologie** :
+    - PostgreSQL (hébergée à distance)
+
+## 4. Fonctionnalités Clés
+
+1. **Dépôt de PDF** : Permet à l'utilisateur de charger des fichiers PDF.
+2. **Conversion PDF en Image** : Convertit le PDF en une image JPEG pour un aperçu visuel.
+3. **Entrée des Métadonnées** : L'utilisateur peut entrer des informations supplémentaires comme le nom de la société et une description.
+4. **Envoi des Données** : Envoie les données (image JPEG et métadonnées) au serveur.
+5. **Stockage en Base de Données** : Stocke les données dans une base de données PostgreSQL distante.
+
+## 5. Base de Données
+
+### 5.1. Schéma de la Table `factures`
+
+

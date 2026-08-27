@@ -1,6 +1,6 @@
 # StockPilot
 
-Application web de gestion de stock de fournitures. Elle permet d'ajouter un produit avec son image, puis de consulter les produits enregistrés par pages de 10.
+Application web de gestion de factures. Elle permet d'ajouter une facture JPEG ou PDF avec le nom de la société et une description, puis de consulter les factures enregistrées par pages de 10.
 
 ## Prérequis
 
@@ -29,7 +29,14 @@ Renseignez ensuite les paramètres PostgreSQL dans `.env`.
 npm start
 ```
 
-Ouvrez ensuite [http://localhost:3000](http://localhost:3000). La page `index.html` ajoute les produits et `list.html` affiche la liste paginée.
+Ouvrez ensuite [http://localhost:3000/login.html](http://localhost:3000/login.html). La page de connexion protège `index.html` et `list.html`.
+
+Pour la démonstration, utilisez :
+
+- Identifiant : `admin`
+- Mot de passe : `admin`
+
+La connexion est conservée dans la session de l'onglet avec `sessionStorage`. Elle reste active pendant les rechargements et la navigation, puis est supprimée lorsque l'onglet est fermé.
 
 ## API
 
@@ -37,7 +44,13 @@ Ouvrez ensuite [http://localhost:3000](http://localhost:3000). La page `index.ht
 - `GET /api/products?page=1&limit=10` : retourne au maximum 10 produits.
 - `GET /api/products/:id/image` : restitue l'image enregistrée dans PostgreSQL.
 
-Les images sont stockées directement dans PostgreSQL via Large Objects. Les formats acceptés sont JPG, PNG, GIF et WebP, avec une taille maximale de 5 Mo.
+Le flux facture utilise également :
+
+- `POST /api/invoices` : ajoute une facture via `multipart/form-data` avec `nom_societe`, `description` et `document`.
+- `GET /api/invoices?page=1` : retourne au maximum 10 factures.
+- `GET /api/invoices/:id/file` : restitue le JPEG ou le PDF enregistré.
+
+Les fichiers sont stockés directement dans PostgreSQL via Large Objects. Les factures acceptent uniquement les JPEG et PDF valides, avec une taille maximale de 5 Mo. La date de chargement est générée automatiquement dans la table `factures`.
 
 ## Vérification
 

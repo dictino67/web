@@ -1,168 +1,91 @@
-const tableBody = document.querySelector('#contacts-body');
+const invoiceList = document.querySelector('#invoice-list');
 const pageIndicator = document.querySelector('#page-indicator');
-const prevButton = document.querySelector('#prev-page');
-const nextButton = document.querySelector('#next-page');
-const searchInput = document.querySelector('#search-name');
-const searchButton = document.querySelector('#search-button');
-const resetButton = document.querySelector('#reset-button');
-const resultCount = document.querySelector('#result-count');
-const thNom = document.querySelector('#th-nom');
+const previousButton = document.querySelector('#previous-button');
+const nextButton = document.querySelector('#next-button');
+const resultCount = document.querySelector('#record-count');
+const message = document.querySelector('#list-message');
 
 let currentPage = 1;
-const pageSize = 10;
-let currentSearch = '';
-let sortBy = '';
-let sortDir = 'desc';
 
-async function fetchContacts(page) {
-  const url = new URL('/api/contacts', window.location.origin);
-  url.searchParams.set('page', String(page));
-  url.searchParams.set('limit', String(pageSize));
-  if (currentSearch) {
-    url.searchParams.set('search', currentSearch);
+async function fetchInvoices(page) {
+  invoiceList.classList.add('is-loading');
+  message.textContent = '';
+  message.className = 'list-message';
+  try {
+    const response = await fetch(`/api/invoices?page=${encodeURIComponent(page)}`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Impossible de charger les factures.');
+    currentPage = data.page;
+    resultCount.textContent = `${data.total} facture${data.total > 1 ? 's' : ''}`;
+    renderInvoices(data.invoices);
+    updatePagination(data.page, data.hasNext);
+  } catch (error) {
+    invoiceList.replaceChildren();
+    message.textContent = error.message;
+    message.classList.add('error');
+  } finally {
+    invoiceList.classList.remove('is-loading');
   }
-
-  if (sortBy) {
-    url.searchParams.set('sortBy', sortBy);
-    url.searchParams.set('sortDir', sortDir);
-  }
-
-  const response = await fetch(url);
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Impossible de charger les contacts.');
-  }
-
-  currentPage = data.page;
-  resultCount.textContent = `${data.total} résultat${data.total > 1 ? 's' : ''}`;
-  renderContacts(data.items);
-  updatePagination(data.page, data.totalPages);
 }
 
-function renderContacts(items) {
-  if (!items.length) {
-    tableBody.innerHTML = '<tr><td colspan="7">Aucun contact trouvé.</td></tr>';
+function renderInvoices(invoices) {
+  invoiceList.replaceChildren();
+  if (!invoices.length) {
+    const empty = document.createElement('p');
+    empty.className = 'list-message';
+    empty.textContent = 'Aucune facture enregistrée.';
+    invoiceList.append(empty);
     return;
   }
 
-  tableBody.innerHTML = items.map((contact) => `
-    <tr>
-      <td data-label="#">${contact.id}</td>
-      <td data-label="Nom">${escapeHtml(contact.nom ?? '')}</td>
-      <td data-label="Prénom">${escapeHtml(contact.prenom ?? '')}</td>
-      <td data-label="Email">${escapeHtml(contact.email ?? '')}</td>
-      <td data-label="GSM">${escapeHtml(contact.gsm ?? '')}</td>
-      <td data-label="Ajouté le">${new Date(contact.created_at).toLocaleString('fr-FR')}</td>
-      <td data-label="Actions"><button data-id="${contact.id}" class="page-btn delete-btn">Supprimer</button></td>
-    </tr>
-  `).join('');
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function updatePagination(page, totalPages) {
-  pageIndicator.textContent = `Page ${page} / ${totalPages}`;
-  prevButton.disabled = page <= 1;
-  nextButton.disabled = page >= totalPages;
-}
-
-// handle delete via event delegation
-tableBody.addEventListener('click', (event) => {
-  const btn = event.target.closest('.delete-btn');
-  if (!btn) return;
-  const id = btn.getAttribute('data-id');
-  if (!id) return;
-  if (!confirm('Souhaitez-vous supprimer ce contact ?')) return;
-
-  fetch(`/api/contacts/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((res) => {
-    if (res.ok) {
-      // If last item on page was removed and page > 1, go back one page
-      fetchContacts(currentPage).catch((error) => {
-        tableBody.innerHTML = `<tr><td colspan="7">${escapeHtml(error.message)}</td></tr>`;
-      });
+  invoices.forEach((invoice) => {
+    const card = document.createElement('article');
+    card.className = 'product-card';
+    const preview = invoice.fichier_mime === 'image/jpeg'
+      ? document.createElement('img')
+      : document.createElement('div');
+    preview.className = 'product-image';
+    if (preview.tagName === 'IMG') {
+      preview.src = `/api/invoices/${encodeURIComponent(invoice.id)}/file`;
+      preview.alt = `Aperçu de ${invoice.fichier_nom}`;
     } else {
-      res.json().then((data) => {
-        alert(data.error || 'Erreur lors de la suppression');
-      }).catch(() => alert('Erreur lors de la suppression'));
+      preview.textContent = 'PDF';
+      preview.classList.add('file-preview');
     }
-  }).catch((err) => {
-    alert(err.message || 'Erreur lors de la suppression');
+    card.append(preview);
+
+    const content = document.createElement('div');
+    content.className = 'product-content';
+    const title = document.createElement('h3');
+    title.textContent = invoice.nom_societe;
+    const description = document.createElement('p');
+    description.textContent = invoice.description;
+    const details = document.createElement('span');
+    details.className = 'product-detail';
+    details.textContent = `${formatDate(invoice.date_chargement)} · ${invoice.fichier_nom}`;
+    content.append(title, description, details);
+
+    const action = document.createElement('a');
+    action.className = 'button button-secondary';
+    action.href = `/api/invoices/${encodeURIComponent(invoice.id)}/file`;
+    action.target = '_blank';
+    action.rel = 'noopener';
+    action.textContent = invoice.fichier_mime === 'application/pdf' ? 'Ouvrir le PDF' : 'Voir le JPEG';
+    card.append(content, action);
+    invoiceList.append(card);
   });
-});
+}
 
-prevButton.addEventListener('click', () => {
-  if (currentPage > 1) {
-    fetchContacts(currentPage - 1).catch((error) => {
-      tableBody.innerHTML = `<tr><td colspan="7">${escapeHtml(error.message)}</td></tr>`;
-    });
-  }
-});
+function formatDate(value) {
+  return new Date(value).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+}
 
-nextButton.addEventListener('click', () => {
-  if (currentPage < Number.MAX_SAFE_INTEGER) {
-    fetchContacts(currentPage + 1).catch((error) => {
-      tableBody.innerHTML = `<tr><td colspan="7">${escapeHtml(error.message)}</td></tr>`;
-    });
-  }
-});
+function updatePagination(page, hasNext) {
+  pageIndicator.textContent = `Page ${page}`;
+  previousButton.disabled = page <= 1;
+  nextButton.disabled = !hasNext;
+}
 
-searchButton.addEventListener('click', () => {
-  currentSearch = searchInput.value.trim();
-  currentPage = 1;
-  fetchContacts(currentPage).catch((error) => {
-    tableBody.innerHTML = `<tr><td colspan="7">${escapeHtml(error.message)}</td></tr>`;
-  });
-});
-
-resetButton.addEventListener('click', () => {
-  currentSearch = '';
-  searchInput.value = '';
-  currentPage = 1;
-  sortBy = '';
-  sortDir = 'desc';
-  thNom.dataset.sort = 'none';
-  fetchContacts(currentPage).catch((error) => {
-    tableBody.innerHTML = `<tr><td colspan="7">${escapeHtml(error.message)}</td></tr>`;
-  });
-});
-
-searchInput.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    searchButton.click();
-  }
-});
-
-// sorting handler for Nom column
-thNom.addEventListener('click', () => {
-  // cycle none -> asc -> desc -> none
-  const state = thNom.dataset.sort || 'none';
-  if (state === 'none') {
-    thNom.dataset.sort = 'asc';
-    sortBy = 'nom';
-    sortDir = 'asc';
-  } else if (state === 'asc') {
-    thNom.dataset.sort = 'desc';
-    sortBy = 'nom';
-    sortDir = 'desc';
-  } else {
-    thNom.dataset.sort = 'none';
-    sortBy = '';
-    sortDir = 'desc';
-  }
-  currentPage = 1;
-  fetchContacts(currentPage).catch((error) => {
-    tableBody.innerHTML = `<tr><td colspan="7">${escapeHtml(error.message)}</td></tr>`;
-  });
-});
-
-fetchContacts(currentPage).catch((error) => {
-  tableBody.innerHTML = `<tr><td colspan="6">${escapeHtml(error.message)}</td></tr>`;
-});
+previousButton.addEventListener('click', () => fetchInvoices(currentPage - 1));
+nextButton.addEventListener('click', () => fetchInvoices(currentPage + 1));
+fetchInvoices(currentPage);

@@ -3,57 +3,52 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ajouter un produit | Stock fournitures</title>
+  <title>Ajouter une facture | Gestion des factures</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="auth.js"></script>
   <script src="app.js" defer></script>
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="index.html"><span class="brand-mark">S</span><span>Stock<span class="brand-accent">Pilot</span></span></a>
+    <a class="brand" href="index.html"><img class="site-logo" src="TOBEdigit_logo_2018.png" alt="TOBEdigit"></a>
     <nav aria-label="Navigation principale">
       <a class="nav-link active" href="index.html">Home</a>
-      <a class="nav-link" href="list.html">Liste des produits</a>
+      <a class="nav-link" href="list.html">Liste des factures</a>
     </nav>
   </header>
 
   <main class="page-shell">
     <section class="intro">
-      <p class="eyebrow">Inventaire / Nouveau produit</p>
-      <h1>Ajouter une fourniture</h1>
-      <p class="intro-copy">Enregistrez une nouvelle référence et gardez votre stock lisible, précis et à jour.</p>
+      <p class="eyebrow">Documents / Nouvelle facture</p>
+      <h1 class="scrolling-title">Ajouter une facture</h1>
+      <p class="intro-copy">Centralisez vos factures et retrouvez rapidement chaque document chargé.</p>
     </section>
 
     <section class="form-panel" aria-labelledby="form-title">
       <div class="panel-heading">
         <div>
-          <p class="section-kicker">Fiche produit</p>
+          <p class="section-kicker">Fiche facture</p>
           <h2 id="form-title">Informations essentielles</h2>
         </div>
         <span class="required-note">* Champs obligatoires</span>
       </div>
-      <form id="product-form" enctype="multipart/form-data">
+      <form id="invoice-form" enctype="multipart/form-data">
         <div class="form-grid">
-          <label class="field field-wide" for="nom_produit">Nom du produit *
-            <input id="nom_produit" name="nom_produit" type="text" maxlength="160" placeholder="Ex. Ramettes de papier A4" required>
-          </label>
-          <label class="field" for="quantite_stock">Quantité en stock *
-            <input id="quantite_stock" name="quantite_stock" type="number" min="0" step="1" placeholder="0" required>
-          </label>
-          <label class="field" for="lieu">Lieu de stockage *
-            <input id="lieu" name="lieu" type="text" maxlength="160" placeholder="Ex. Réserve B - Étagère 3" required>
+          <label class="field field-wide" for="nom_societe">Nom de la société *
+            <input id="nom_societe" name="nom_societe" type="text" maxlength="160" placeholder="Ex. Société Exemple" required>
           </label>
           <label class="field field-wide" for="description">Description *
-            <textarea id="description" name="description" rows="4" maxlength="2000" placeholder="Décrivez le format, la marque ou toute information utile..." required></textarea>
+            <textarea id="description" name="description" rows="4" maxlength="2000" placeholder="Ajoutez une description ou une référence utile..." required></textarea>
           </label>
-          <label class="field field-wide upload-field" for="image">Image du produit *
-            <span class="upload-box"><span class="upload-icon">↑</span><span><strong>Choisir une image</strong><small>JPG, PNG, GIF ou WebP · 5 Mo maximum</small></span></span>
-            <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/gif,image/webp" required>
+          <label class="field field-wide upload-field" for="document">Facture (JPEG ou PDF) *
+            <span class="upload-box"><span class="upload-icon">↑</span><span><strong>Choisir un fichier</strong><small>JPEG ou PDF · 5 Mo maximum</small></span></span>
+            <input id="document" name="document" type="file" accept="image/jpeg,application/pdf" required>
             <span id="file-name" class="file-name">Aucun fichier sélectionné</span>
           </label>
         </div>
         <div class="form-actions">
           <p id="form-message" class="form-message" role="status" aria-live="polite"></p>
-          <button class="button button-primary" type="submit"><span>Enregistrer le produit</span><span aria-hidden="true">→</span></button>
+          <button class="button button-primary" type="submit"><span>Enregistrer la facture</span><span aria-hidden="true">→</span></button>
         </div>
       </form>
     </section>

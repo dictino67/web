@@ -16,16 +16,26 @@
 body { margin: 0; min-width: 320px; background: radial-gradient(circle at 90% 0%, #e5f2e8 0, transparent 32rem), var(--paper); }
 .site-header { display: flex; align-items: center; justify-content: space-between; max-width: 1180px; margin: auto; padding: 26px 30px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 1.25rem; font-weight: bold; text-decoration: none; }
+.site-logo { display: block; width: 170px; height: auto; }
 .brand-mark { display: grid; place-items: center; width: 32px; height: 32px; color: var(--ink); background: var(--mint); border-radius: 50%; font-style: italic; }
 .brand-accent { color: var(--mint-deep); }
 nav { display: flex; gap: 28px; }
 .nav-link { color: var(--muted); font: 600 .82rem Arial, sans-serif; text-decoration: none; }
 .nav-link.active, .nav-link:hover { color: var(--ink); }
 .page-shell { max-width: 1180px; margin: 0 auto; padding: 42px 30px 80px; }
+.auth-shell { display: grid; place-items: center; min-height: 100vh; padding: 30px; }
+.auth-panel { width: min(100%, 480px); padding: 42px clamp(24px, 6vw, 58px); background: rgba(255,255,255,.9); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.auth-panel .brand { margin-bottom: 62px; }
+.auth-panel h1 { font-size: clamp(2.7rem, 8vw, 4.5rem); }
+.login-form { display: grid; gap: 22px; margin-top: 34px; }
+.login-form .button { width: 100%; margin-top: 8px; }
 .intro { max-width: 700px; margin-bottom: 42px; }
 .list-intro { max-width: none; display: flex; align-items: end; justify-content: space-between; gap: 30px; }
 .eyebrow, .section-kicker { margin: 0 0 13px; color: var(--orange); font: 700 .7rem Arial, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
 h1 { max-width: 660px; margin: 0; font-size: clamp(2.7rem, 6vw, 5.4rem); font-weight: normal; line-height: .95; letter-spacing: 0; }
+.scrolling-title { width: max-content; max-width: none; animation: title-scroll 14s linear infinite; will-change: transform; }
+@keyframes title-scroll { from { transform: translateX(-100vw); } to { transform: translateX(100vw); } }
+@media (prefers-reduced-motion: reduce) { .scrolling-title { animation: none; } }
 h2 { margin: 0; font-size: 1.55rem; font-weight: normal; }
 .intro-copy { max-width: 500px; margin: 24px 0 0; color: var(--muted); font: 1rem/1.65 Arial, sans-serif; }
 .form-panel, .list-panel { background: rgba(255,255,255,.86); border: 1px solid var(--line); box-shadow: var(--shadow); }
@@ -55,5 +65,5 @@ input:focus, textarea:focus { border-color: var(--mint-deep); box-shadow: 0 0 0 
 .button-secondary { color: var(--ink); border-color: var(--line); background: var(--surface); }
 .product-list { display: grid; gap: 1px; border-top: 1px solid var(--line); }.product-list.is-loading { opacity: .5; }
 .product-card { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: 22px; padding: 18px 0; border-bottom: 1px solid var(--line); }
-.product-image { width: 84px; height: 84px; object-fit: cover; background: #e9f1e9; }.product-content h3 { margin: 0 0 7px; font-size: 1.15rem; font-weight: normal; }.product-content p { margin: 0 0 9px; color: var(--muted); font: .86rem/1.45 Arial, sans-serif; }.product-detail { color: var(--mint-deep); font: 700 .72rem Arial, sans-serif; }.quantity { min-width: 70px; text-align: right; }.quantity span { display: block; color: var(--muted); font: .68rem Arial, sans-serif; text-transform: uppercase; }.quantity strong { display: block; margin-top: 4px; color: var(--mint-deep); font-size: 1.5rem; font-weight: normal; }.pagination { display: flex; align-items: center; justify-content: center; gap: 24px; margin-top: 30px; }.pagination span { min-width: 60px; text-align: center; color: var(--muted); font: .76rem Arial, sans-serif; }
+.product-image { width: 84px; height: 84px; object-fit: cover; background: #e9f1e9; }.file-preview { display: grid; place-items: center; color: var(--orange); font: 700 .85rem Arial, sans-serif; }.product-content h3 { margin: 0 0 7px; font-size: 1.15rem; font-weight: normal; }.product-content p { margin: 0 0 9px; color: var(--muted); font: .86rem/1.45 Arial, sans-serif; }.product-detail { color: var(--mint-deep); font: 700 .72rem Arial, sans-serif; }.quantity { min-width: 70px; text-align: right; }.quantity span { display: block; color: var(--muted); font: .68rem Arial, sans-serif; text-transform: uppercase; }.quantity strong { display: block; margin-top: 4px; color: var(--mint-deep); font-size: 1.5rem; font-weight: normal; }.pagination { display: flex; align-items: center; justify-content: center; gap: 24px; margin-top: 30px; }.pagination span { min-width: 60px; text-align: center; color: var(--muted); font: .76rem Arial, sans-serif; }
 @media (max-width: 650px) { .site-header { padding: 20px; }.page-shell { padding: 30px 20px 55px; }.site-header nav { gap: 14px; }.nav-link { font-size: .72rem; }.list-intro, .form-actions { align-items: stretch; flex-direction: column; }.list-intro .button { align-self: start; }.form-grid { grid-template-columns: 1fr; }.field-wide { grid-column: auto; }.form-panel, .list-panel { padding: 25px 20px; }.panel-heading { flex-direction: column; margin-bottom: 25px; }.product-card { grid-template-columns: 58px 1fr; gap: 13px; }.product-image { width: 58px; height: 58px; }.quantity { grid-column: 2; text-align: left; }.pagination { gap: 8px; justify-content: space-between; }.button-secondary { padding: 0 12px; } }
