@@ -21,6 +21,7 @@ const imageTypes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'
 if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) throw new Error('SESSION_SECRET doit contenir au moins 32 caractères.');
 if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD_HASH?.startsWith('$2')) throw new Error('ADMIN_USERNAME et ADMIN_PASSWORD_HASH sont obligatoires.');
 if (!process.env.N8N_API_KEY || process.env.N8N_API_KEY.length < 32) throw new Error('N8N_API_KEY doit contenir au moins 32 caractères.');
+if (!process.env.N8N_READ_WEBHOOK_URL) throw new Error('N8N_READ_WEBHOOK_URL est obligatoire.');
 
 const pool = new Pool({ host: process.env.PGHOST, port: process.env.PGPORT, database: process.env.PGDATABASE, user: process.env.PGUSER, password: process.env.PGPASSWORD, ssl: process.env.PGSSL === 'true' ? { rejectUnauthorized: process.env.PGSSL_REJECT_UNAUTHORIZED !== 'false' } : undefined });
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: maxFileSize, files: 1 } });
@@ -72,7 +73,7 @@ app.post('/api/invoices', requireAuth, upload.single('document'), async (req, re
 });
 app.get('/api/invoices', requireAuth, async (req, res) => {
   const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1); const offset = (page - 1) * pageSize;
-  try { const [invoices, count] = await Promise.all([pool.query('SELECT id, date_chargement, nom_societe, description, fichier_mime, fichier_nom FROM factures ORDER BY date_chargement DESC, id DESC LIMIT $1 OFFSET $2', [pageSize, offset]), pool.query('SELECT COUNT(*)::int AS total FROM factures')]); const total = count.rows[0].total; return res.json({ invoices: invoices.rows, total, page, limit: pageSize, hasNext: offset + invoices.rows.length < total }); } catch (error) { console.error(error); return errorResponse(res, 500, 'Impossible de charger les factures.'); }
+  try { const [invoices, count] = await Promise.all([pool.query('SELECT id, date_chargement, nom_societe, description, fichier_mime, fichier_nom, n8n_traite FROM factures ORDER BY date_chargement DESC, id DESC LIMIT $1 OFFSET $2', [pageSize, offset]), pool.query('SELECT COUNT(*)::int AS total FROM factures')]); const total = count.rows[0].total; return res.json({ invoices: invoices.rows, total, page, limit: pageSize, hasNext: offset + invoices.rows.length < total }); } catch (error) { console.error(error); return errorResponse(res, 500, 'Impossible de charger les factures.'); }
 });
 app.get('/api/invoices/:id/file', requireAuth, async (req, res) => {
   try { const result = await pool.query('SELECT fichier_oid, fichier_mime, fichier_nom FROM factures WHERE id = $1', [req.params.id]); if (!result.rowCount) return errorResponse(res, 404, 'Facture introuvable.'); const file = await pool.query('SELECT lo_get($1) AS data', [result.rows[0].fichier_oid]); res.set({ 'Content-Type': result.rows[0].fichier_mime, 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': `inline; filename="${path.basename(result.rows[0].fichier_nom).replace(/["\r\n]/g, '')}"` }); return res.send(file.rows[0].data); } catch (error) { console.error(error); return errorResponse(res, 500, 'Impossible de charger le fichier.'); }
@@ -88,11 +89,24 @@ app.get('/api/n8n/invoices/:id/file', requireN8nApiKey, async (req, res) => {
   } catch (error) { console.error(error); return errorResponse(res, 500, 'Impossible de charger le fichier pour n8n.'); }
 });
 
+app.get('/api/invoices/:id/read', requireAuth, async (req, res) => {
+  try {
+    const invoice = await pool.query('SELECT id, fichier_nom FROM factures WHERE id = $1', [req.params.id]);
+    if (!invoice.rowCount) return errorResponse(res, 404, 'Facture introuvable.');
+    const webhookUrl = new URL(process.env.N8N_READ_WEBHOOK_URL);
+    webhookUrl.searchParams.set('invoiceId', String(invoice.rows[0].id));
+    webhookUrl.searchParams.set('fichierNom', invoice.rows[0].fichier_nom);
+    const response = await fetch(webhookUrl, { method: 'GET', signal: AbortSignal.timeout(10000) });
+    if (!response.ok) return errorResponse(res, 502, 'Le webhook n8n a refusé la lecture de la facture.');
+    return res.json({ message: 'Lecture de la facture lancée.' });
+  } catch (error) { console.error(error); return errorResponse(res, 502, 'Impossible de contacter le webhook n8n.'); }
+});
+
 app.get('/api/invoices/:id', requireAuth, async (req, res) => {
   try {
     const invoice = await pool.query('SELECT id, date_chargement, nom_societe, description, fichier_mime, fichier_nom, nom_fichier_image, n8n_traite FROM factures WHERE id = $1', [req.params.id]);
     if (!invoice.rowCount) return errorResponse(res, 404, 'Facture introuvable.');
-    const details = await pool.query('SELECT id, nom_fichier, description, quantite, montant FROM detailfacture WHERE nom_fichier = $1 ORDER BY id', [invoice.rows[0].nom_fichier_image]);
+    const details = await pool.query('SELECT id, nom_fichier, description, quantite, montant FROM detailfacture WHERE nom_fichier = $1 ORDER BY id', [invoice.rows[0].fichier_nom]);
     return res.json({ invoice: invoice.rows[0], details: details.rows });
   } catch (error) { console.error(error); return errorResponse(res, 500, 'Impossible de charger le détail de la facture.'); }
 });

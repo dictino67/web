@@ -37,7 +37,7 @@ async function loadInvoice() {
   if (!response.ok) throw new Error(data.error || 'Impossible de charger la facture.');
   companyInput.value = data.invoice.nom_societe;
   descriptionInput.value = data.invoice.description;
-  currentFile.textContent = `Fichier actuel : ${data.invoice.fichier_nom} (index n8n : ${data.invoice.nom_fichier_image})`;
+  currentFile.textContent = `Fichier actuel : ${data.invoice.fichier_nom}`;
   status.textContent = data.invoice.n8n_traite ? 'Traité par n8n' : 'En attente de traitement n8n';
   detailsList.replaceChildren();
   data.details.forEach(addDetailRow);

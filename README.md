@@ -59,12 +59,15 @@ Le flux facture utilise également :
 - `GET /api/invoices?page=1` : retourne au maximum 10 factures.
 - `GET /api/invoices/:id/file` : restitue le JPEG ou le PDF enregistré.
 - `GET /api/n8n/invoices/:id/file` : restitue le fichier à n8n avec l'en-tête `X-N8N-API-KEY`.
-- `GET /api/invoices/:id` : retourne la facture et les lignes `detailfacture` correspondant à `nom_fichier_image`.
+- `GET /api/invoices/:id` : retourne la facture et les lignes `detailfacture` correspondant exactement à `factures.fichier_nom`.
 - `PUT /api/invoices/:id` : modifie les champs de la facture et permet de remplacer son fichier.
+- `GET /api/invoices/:id/read` : déclenche le webhook n8n de lecture de la facture.
 
 Les fichiers sont stockés directement dans PostgreSQL via Large Objects. Les factures acceptent uniquement les JPEG et PDF valides, avec une taille maximale de 5 Mo. La date de chargement est générée automatiquement dans la table `factures`.
 
-La table `detailfacture` est destinée à l'extraction n8n. n8n peut insérer les champs `nom_fichier`, `description`, `quantite` et `montant`, puis positionner `factures.n8n_traite` à `TRUE`. La page `detail.html` affiche uniquement les lignes dont `nom_fichier` correspond à `factures.nom_fichier_image`; sinon elle affiche « Pas de données disponible ».
+La table `detailfacture` est destinée à l'extraction n8n. n8n peut insérer les champs `nom_fichier`, `description`, `quantite` et `montant`, puis positionner `factures.n8n_traite` à `TRUE`. La page `detail.html` affiche uniquement les lignes dont `nom_fichier` correspond exactement à `factures.fichier_nom`; sinon elle affiche « Pas de données disponible ».
+
+Depuis `list.html`, le bouton « Lire la facture » déclenche ce webhook en GET. Après une réponse positive, l'interface indique d'attendre 30 secondes avant de consulter le détail.
 
 ### Connexion n8n
 

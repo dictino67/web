@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS factures (
 
 ALTER TABLE factures ADD COLUMN IF NOT EXISTS nom_fichier_image VARCHAR(255) NOT NULL DEFAULT '';
 ALTER TABLE factures ADD COLUMN IF NOT EXISTS n8n_traite BOOLEAN NOT NULL DEFAULT FALSE;
+UPDATE factures SET nom_fichier_image = fichier_nom WHERE nom_fichier_image = '';
 
 CREATE INDEX IF NOT EXISTS factures_date_chargement_idx ON factures (date_chargement DESC, id DESC);
 CREATE INDEX IF NOT EXISTS factures_nom_fichier_image_idx ON factures (nom_fichier_image);

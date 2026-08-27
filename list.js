@@ -79,6 +79,32 @@ function renderInvoices(invoices) {
     detailAction.href = `detail.html?id=${encodeURIComponent(invoice.id)}`;
     detailAction.textContent = 'Détail';
     actions.append(detailAction);
+    if (!invoice.n8n_traite) {
+      const readButton = document.createElement('button');
+      readButton.className = 'button button-secondary';
+      readButton.type = 'button';
+      readButton.textContent = 'Lire la facture';
+      const readMessage = document.createElement('span');
+      readMessage.className = 'webhook-message';
+      readMessage.hidden = true;
+      readMessage.textContent = 'La lecture de la facture est effectuée. Il faut attendre 30 s avant que le détail soit mis à jour.';
+      readButton.addEventListener('click', async () => {
+        readButton.disabled = true;
+        readMessage.hidden = true;
+        try {
+          const response = await fetch(`/api/invoices/${encodeURIComponent(invoice.id)}/read`);
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Impossible de lancer la lecture.');
+          readMessage.hidden = false;
+        } catch (error) {
+          message.textContent = error.message;
+          message.className = 'list-message error';
+        } finally {
+          readButton.disabled = false;
+        }
+      });
+      actions.append(readButton, readMessage);
+    }
     card.append(content, actions);
     invoiceList.append(card);
   });
