@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS produits (
     image_nom VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
 CREATE INDEX IF NOT EXISTS produits_created_at_idx ON produits (created_at DESC, id DESC);
 
 CREATE TABLE IF NOT EXISTS factures (
@@ -23,3 +22,10 @@ CREATE TABLE IF NOT EXISTS factures (
 );
 
 CREATE INDEX IF NOT EXISTS factures_date_chargement_idx ON factures (date_chargement DESC, id DESC);
+
+CREATE TABLE IF NOT EXISTS utilisateurs (
+    id BIGSERIAL PRIMARY KEY,
+    nom_utilisateur VARCHAR(80) UNIQUE NOT NULL,
+    mot_de_passe_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

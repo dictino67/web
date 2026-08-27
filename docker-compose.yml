@@ -4,8 +4,10 @@ services:
       context: .
       dockerfile: stock-app/Dockerfile
     ports:
-      - "3000:3000"
+      - "3443:3443"
     env_file:
       - .env
+    volumes:
+      - ./certs:/certs:ro
     command: >-
       sh -c "psql -v ON_ERROR_STOP=1 -f database/schema.sql && node server.js"

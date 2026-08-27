@@ -38,14 +38,16 @@ Avec Docker, depuis la racine du projet :
 docker compose up --build -d
 ```
 
-Ouvrez ensuite [http://localhost:3000/login.html](http://localhost:3000/login.html). La page de connexion protège `index.html` et `list.html`.
+En production, fournissez un certificat pour le domaine public dans `certs/server.crt` et `certs/server.key`, puis utilisez `PUBLIC_BASE_URL` avec ce domaine. Le certificat auto-signé local n'est destiné qu'aux tests et provoquera un avertissement du navigateur.
+
+Ouvrez ensuite [https://stock.localhost:3443/login.html](https://stock.localhost:3443/login.html). La page de connexion protège `index.html` et `list.html`.
 
 Pour la démonstration, utilisez :
 
 - Identifiant : `admin`
 - Mot de passe : `admin`
 
-La connexion est conservée dans la session de l'onglet avec `sessionStorage`. Elle reste active pendant les rechargements et la navigation, puis est supprimée lorsque l'onglet est fermé.
+La connexion est conservée côté serveur dans PostgreSQL et identifiée par un cookie `HttpOnly`, `Secure` et `SameSite=Strict`. Elle expire après 8 heures ou lors de la déconnexion.
 
 ## API
 
