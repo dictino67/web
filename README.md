@@ -38,16 +38,14 @@ Avec Docker, depuis la racine du projet :
 docker compose up --build -d
 ```
 
-En production, fournissez un certificat pour le domaine public dans `certs/server.crt` et `certs/server.key`, puis utilisez `PUBLIC_BASE_URL` avec ce domaine. Le certificat auto-signé local n'est destiné qu'aux tests et provoquera un avertissement du navigateur.
-
-Ouvrez ensuite [https://stock.localhost:3443/login.html](https://stock.localhost:3443/login.html). La page de connexion protège `index.html` et `list.html`.
+Ouvrez ensuite [http://localhost:3000/login.html](http://localhost:3000/login.html). La page de connexion protège `index.html` et `list.html`.
 
 Pour la démonstration, utilisez :
 
 - Identifiant : `admin`
 - Mot de passe : `admin`
 
-La connexion est conservée côté serveur dans PostgreSQL et identifiée par un cookie `HttpOnly`, `Secure` et `SameSite=Strict`. Elle expire après 8 heures ou lors de la déconnexion.
+La connexion est conservée côté serveur dans PostgreSQL et identifiée par un cookie `HttpOnly` et `SameSite=Strict`. Elle expire après 8 heures ou lors de la déconnexion. HTTPS devra être ajouté devant cette application avant toute exposition sur Internet.
 
 ## API
 
@@ -60,12 +58,34 @@ Le flux facture utilise également :
 - `POST /api/invoices` : ajoute une facture via `multipart/form-data` avec `nom_societe`, `description` et `document`.
 - `GET /api/invoices?page=1` : retourne au maximum 10 factures.
 - `GET /api/invoices/:id/file` : restitue le JPEG ou le PDF enregistré.
+- `GET /api/n8n/invoices/:id/file` : restitue le fichier à n8n avec l'en-tête `X-N8N-API-KEY`.
 - `GET /api/invoices/:id` : retourne la facture et les lignes `detailfacture` correspondant à `nom_fichier_image`.
 - `PUT /api/invoices/:id` : modifie les champs de la facture et permet de remplacer son fichier.
 
 Les fichiers sont stockés directement dans PostgreSQL via Large Objects. Les factures acceptent uniquement les JPEG et PDF valides, avec une taille maximale de 5 Mo. La date de chargement est générée automatiquement dans la table `factures`.
 
 La table `detailfacture` est destinée à l'extraction n8n. n8n peut insérer les champs `nom_fichier`, `description`, `quantite` et `montant`, puis positionner `factures.n8n_traite` à `TRUE`. La page `detail.html` affiche uniquement les lignes dont `nom_fichier` correspond à `factures.nom_fichier_image`; sinon elle affiche « Pas de données disponible ».
+
+### Connexion n8n
+
+Générez une clé dédiée et placez-la uniquement dans `.env` et dans les credentials n8n :
+
+```bash
+openssl rand -hex 32
+```
+
+Dans n8n, créez un credential de type **Header Auth** :
+
+- Nom de l'en-tête : `X-N8N-API-KEY`
+- Valeur : la valeur de `N8N_API_KEY`
+
+Utilisez ensuite cette URL dans un nœud HTTP Request :
+
+```text
+http://votre-domaine:3000/api/n8n/invoices/{id}/file
+```
+
+La clé n8n est différente du compte utilisateur et n'est jamais placée dans le JavaScript du navigateur.
 
 ## Vérification
 
