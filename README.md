@@ -14,14 +14,17 @@ npm install
 cp .env.example .env
 ```
 
-Créez la base PostgreSQL, puis exécutez le schéma :
+Configurez la connexion PostgreSQL distante dans `.env` :
 
 ```bash
-createdb stock_fournitures
-psql -d stock_fournitures -f database/schema.sql
+PGHOST=192.168.0.120
+PGPORT=5432
+PGDATABASE=n8_db
+PGUSER=n8n
+PGPASSWORD=secret
 ```
 
-Renseignez ensuite les paramètres PostgreSQL dans `.env`.
+Le démarrage Docker exécute automatiquement `database/schema.sql` sur cette base distante.
 
 ## Démarrage
 
