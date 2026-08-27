@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Détail facture | Gestion des factures</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="auth.js"></script>
+  <script src="detail.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html"><img class="site-logo" src="TOBEdigit_logo_2018.png" alt="TOBEdigit"></a>
+    <nav aria-label="Navigation principale"><a class="nav-link" href="index.html">Home</a><a class="nav-link active" href="list.html">Liste des factures</a></nav>
+  </header>
+  <main class="page-shell">
+    <section class="intro"><p class="eyebrow">Documents / Détail</p><h1>Détail de la facture</h1><p class="intro-copy">Consultez et modifiez les informations du document sélectionné.</p></section>
+    <section class="form-panel" aria-labelledby="invoice-title">
+      <div class="panel-heading"><div><p class="section-kicker">Fiche facture</p><h2 id="invoice-title">Informations essentielles</h2></div><button id="edit-button" class="button button-secondary" type="button">Modifier</button></div>
+      <form id="detail-form" enctype="multipart/form-data">
+        <div class="form-grid">
+          <label class="field field-wide" for="nom_societe">Nom de la société *<input id="nom_societe" name="nom_societe" type="text" maxlength="160" required disabled></label>
+          <label class="field field-wide" for="description">Description *<textarea id="description" name="description" rows="4" maxlength="2000" required disabled></textarea></label>
+          <label class="field field-wide upload-field" for="document">Facture<input id="document" name="document" type="file" accept="image/jpeg,application/pdf" disabled><span id="current-file" class="file-name">Fichier actuel : chargement...</span></label>
+        </div>
+        <div class="form-actions"><p id="detail-message" class="form-message" role="status" aria-live="polite"></p><button id="save-button" class="button button-primary" type="submit" hidden>Enregistrer les modifications</button></div>
+      </form>
+    </section>
+    <section class="list-panel detail-data" aria-labelledby="details-title"><div class="panel-heading"><div><p class="section-kicker">Extraction n8n</p><h2 id="details-title">Données du fichier</h2></div><span id="processing-status" class="record-count"></span></div><p id="details-empty" class="list-message" hidden>Pas de données disponible.</p><div id="detail-list" class="detail-table"></div></section>
+  </main>
+</body>
+</html>

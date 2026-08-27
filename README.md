@@ -60,8 +60,12 @@ Le flux facture utilise également :
 - `POST /api/invoices` : ajoute une facture via `multipart/form-data` avec `nom_societe`, `description` et `document`.
 - `GET /api/invoices?page=1` : retourne au maximum 10 factures.
 - `GET /api/invoices/:id/file` : restitue le JPEG ou le PDF enregistré.
+- `GET /api/invoices/:id` : retourne la facture et les lignes `detailfacture` correspondant à `nom_fichier_image`.
+- `PUT /api/invoices/:id` : modifie les champs de la facture et permet de remplacer son fichier.
 
 Les fichiers sont stockés directement dans PostgreSQL via Large Objects. Les factures acceptent uniquement les JPEG et PDF valides, avec une taille maximale de 5 Mo. La date de chargement est générée automatiquement dans la table `factures`.
+
+La table `detailfacture` est destinée à l'extraction n8n. n8n peut insérer les champs `nom_fichier`, `description`, `quantite` et `montant`, puis positionner `factures.n8n_traite` à `TRUE`. La page `detail.html` affiche uniquement les lignes dont `nom_fichier` correspond à `factures.nom_fichier_image`; sinon elle affiche « Pas de données disponible ».
 
 ## Vérification
 

@@ -65,13 +65,21 @@ function renderInvoices(invoices) {
     details.textContent = `${formatDate(invoice.date_chargement)} · ${invoice.fichier_nom}`;
     content.append(title, description, details);
 
+    const actions = document.createElement('div');
+    actions.className = 'product-actions';
     const action = document.createElement('a');
     action.className = 'button button-secondary';
     action.href = `/api/invoices/${encodeURIComponent(invoice.id)}/file`;
     action.target = '_blank';
     action.rel = 'noopener';
     action.textContent = invoice.fichier_mime === 'application/pdf' ? 'Ouvrir le PDF' : 'Voir le JPEG';
-    card.append(content, action);
+    actions.append(action);
+    const detailAction = document.createElement('a');
+    detailAction.className = 'button button-secondary';
+    detailAction.href = `detail.html?id=${encodeURIComponent(invoice.id)}`;
+    detailAction.textContent = 'Détail';
+    actions.append(detailAction);
+    card.append(content, actions);
     invoiceList.append(card);
   });
 }

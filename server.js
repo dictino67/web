@@ -70,7 +70,7 @@ app.post('/api/invoices', requireAuth, upload.single('document'), async (req, re
   if (!company || !description) return errorResponse(res, 400, 'Veuillez renseigner la société et la description.');
   if (!req.file || !invoiceTypes.has(req.file.mimetype) || !isSignatureValid(req.file.buffer, req.file.mimetype)) return errorResponse(res, 400, 'Un fichier JPEG ou PDF valide est obligatoire.');
   const client = await pool.connect(); let oid;
-  try { await client.query('BEGIN'); oid = await writeLargeObject(client, req.file.buffer); const result = await client.query(`INSERT INTO factures (nom_societe, description, fichier_oid, fichier_mime, fichier_nom) VALUES ($1, $2, $3, $4, $5) RETURNING id, date_chargement`, [company, description, oid, req.file.mimetype, path.basename(req.file.originalname)]); await client.query('COMMIT'); return res.status(201).json({ message: 'Facture enregistrée avec succès.', invoice: result.rows[0] }); }
+  try { await client.query('BEGIN'); oid = await writeLargeObject(client, req.file.buffer); const fileName = path.basename(req.file.originalname); const result = await client.query(`INSERT INTO factures (nom_societe, description, fichier_oid, fichier_mime, fichier_nom, nom_fichier_image) VALUES ($1, $2, $3, $4, $5, $5) RETURNING id, date_chargement`, [company, description, oid, req.file.mimetype, fileName]); await client.query('COMMIT'); return res.status(201).json({ message: 'Facture enregistrée avec succès.', invoice: result.rows[0] }); }
   catch (error) { await client.query('ROLLBACK').catch(() => {}); if (oid) await pool.query('SELECT lo_unlink($1)', [oid]).catch(() => {}); console.error(error); return errorResponse(res, 500, 'Impossible d’enregistrer la facture.'); } finally { client.release(); }
 });
 app.get('/api/invoices', requireAuth, async (req, res) => {
@@ -81,7 +81,36 @@ app.get('/api/invoices/:id/file', requireAuth, async (req, res) => {
   try { const result = await pool.query('SELECT fichier_oid, fichier_mime, fichier_nom FROM factures WHERE id = $1', [req.params.id]); if (!result.rowCount) return errorResponse(res, 404, 'Facture introuvable.'); const file = await pool.query('SELECT lo_get($1) AS data', [result.rows[0].fichier_oid]); res.set({ 'Content-Type': result.rows[0].fichier_mime, 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': `inline; filename="${path.basename(result.rows[0].fichier_nom).replace(/["\r\n]/g, '')}"` }); return res.send(file.rows[0].data); } catch (error) { console.error(error); return errorResponse(res, 500, 'Impossible de charger le fichier.'); }
 });
 
-app.use((req, res, next) => ['/', '/index.html', '/list.html'].includes(req.path) && !req.session.user ? res.redirect('/login.html') : next());
+app.get('/api/invoices/:id', requireAuth, async (req, res) => {
+  try {
+    const invoice = await pool.query('SELECT id, date_chargement, nom_societe, description, fichier_mime, fichier_nom, nom_fichier_image, n8n_traite FROM factures WHERE id = $1', [req.params.id]);
+    if (!invoice.rowCount) return errorResponse(res, 404, 'Facture introuvable.');
+    const details = await pool.query('SELECT id, nom_fichier, description, quantite, montant FROM detailfacture WHERE nom_fichier = $1 ORDER BY id', [invoice.rows[0].nom_fichier_image]);
+    return res.json({ invoice: invoice.rows[0], details: details.rows });
+  } catch (error) { console.error(error); return errorResponse(res, 500, 'Impossible de charger le détail de la facture.'); }
+});
+
+app.put('/api/invoices/:id', requireAuth, upload.single('document'), async (req, res) => {
+  const company = String(req.body.nom_societe || '').trim();
+  const description = String(req.body.description || '').trim();
+  if (!company || !description) return errorResponse(res, 400, 'La société et la description sont obligatoires.');
+  if (req.file && (!invoiceTypes.has(req.file.mimetype) || !isSignatureValid(req.file.buffer, req.file.mimetype))) return errorResponse(res, 400, 'Le fichier doit être un JPEG ou un PDF valide.');
+  const client = await pool.connect(); let newOid;
+  try {
+    await client.query('BEGIN');
+    const current = await client.query('SELECT fichier_oid FROM factures WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (!current.rowCount) { await client.query('ROLLBACK'); return errorResponse(res, 404, 'Facture introuvable.'); }
+    if (req.file) newOid = await writeLargeObject(client, req.file.buffer);
+    const fileName = req.file ? path.basename(req.file.originalname) : null;
+    const result = await client.query(`UPDATE factures SET nom_societe = $1, description = $2, fichier_oid = COALESCE($3, fichier_oid), fichier_mime = COALESCE($4, fichier_mime), fichier_nom = COALESCE($5, fichier_nom), nom_fichier_image = COALESCE($5, nom_fichier_image), n8n_traite = CASE WHEN $3 IS NULL THEN n8n_traite ELSE FALSE END WHERE id = $6 RETURNING id, date_chargement, nom_societe, description, fichier_mime, fichier_nom, nom_fichier_image, n8n_traite`, [company, description, newOid || null, req.file?.mimetype || null, fileName, req.params.id]);
+    await client.query('COMMIT');
+    if (newOid) await pool.query('SELECT lo_unlink($1)', [current.rows[0].fichier_oid]).catch(() => {});
+    return res.json({ message: 'Facture modifiée avec succès.', invoice: result.rows[0] });
+  } catch (error) { await client.query('ROLLBACK').catch(() => {}); if (newOid) await pool.query('SELECT lo_unlink($1)', [newOid]).catch(() => {}); console.error(error); return errorResponse(res, 500, 'Impossible de modifier la facture.'); }
+  finally { client.release(); }
+});
+
+app.use((req, res, next) => ['/', '/index.html', '/list.html', '/detail.html'].includes(req.path) && !req.session.user ? res.redirect('/login.html') : next());
 app.use(express.static(__dirname, { dotfiles: 'deny', index: false }));
 app.use((error, req, res, next) => error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE' ? errorResponse(res, 400, 'Le fichier ne doit pas dépasser 5 Mo.') : errorResponse(res, 400, 'Requête invalide.'));
 

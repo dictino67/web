@@ -18,10 +18,27 @@ CREATE TABLE IF NOT EXISTS factures (
     description TEXT NOT NULL CHECK (char_length(trim(description)) > 0),
     fichier_oid OID NOT NULL,
     fichier_mime VARCHAR(80) NOT NULL CHECK (fichier_mime IN ('image/jpeg', 'application/pdf')),
-    fichier_nom VARCHAR(255) NOT NULL
+    fichier_nom VARCHAR(255) NOT NULL,
+    nom_fichier_image VARCHAR(255) NOT NULL DEFAULT '',
+    n8n_traite BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+ALTER TABLE factures ADD COLUMN IF NOT EXISTS nom_fichier_image VARCHAR(255) NOT NULL DEFAULT '';
+ALTER TABLE factures ADD COLUMN IF NOT EXISTS n8n_traite BOOLEAN NOT NULL DEFAULT FALSE;
+
 CREATE INDEX IF NOT EXISTS factures_date_chargement_idx ON factures (date_chargement DESC, id DESC);
+CREATE INDEX IF NOT EXISTS factures_nom_fichier_image_idx ON factures (nom_fichier_image);
+
+CREATE TABLE IF NOT EXISTS detailfacture (
+    id BIGSERIAL PRIMARY KEY,
+    nom_fichier VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL CHECK (char_length(trim(description)) > 0),
+    quantite NUMERIC(12, 3) NOT NULL CHECK (quantite >= 0),
+    montant NUMERIC(14, 2) NOT NULL CHECK (montant >= 0),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS detailfacture_nom_fichier_idx ON detailfacture (nom_fichier);
 
 CREATE TABLE IF NOT EXISTS utilisateurs (
     id BIGSERIAL PRIMARY KEY,
