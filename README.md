@@ -17,11 +17,11 @@ cp .env.example .env
 Configurez la connexion PostgreSQL distante dans `.env` :
 
 ```bash
-PGHOST=192.168.0.120
+PGHOST=192.168.0.xxx
 PGPORT=5432
-PGDATABASE=n8_db
-PGUSER=n8n
-PGPASSWORD=secret
+PGDATABASE=
+PGUSER=
+PGPASSWORD=
 ```
 
 Le démarrage Docker exécute automatiquement `database/schema.sql` sur cette base distante.
